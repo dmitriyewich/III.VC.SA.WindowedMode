@@ -319,7 +319,6 @@ void WindowedMode::WindowCalculateGeometry(bool center, bool resizeWindow)
 	if (*rwVideoModes)
 	{
 		// backup display modes infos before making any changes
-		static std::vector<DisplayMode> videoModesBackup;
 		if (videoModesBackup.empty())
 		{
 			auto count = RwEngineGetNumVideoModes();

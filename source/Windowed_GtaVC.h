@@ -63,6 +63,10 @@ void WindowedMode::InitGtaVC()
 	{
 		void operator()(injector::reg_pack& regs)
 		{
+			// restore potentially corrupted entry before reading it
+			if (!inst->videoModesBackup.empty() && regs.eax < inst->videoModesBackup.size())
+				(*inst->rwVideoModes)[regs.eax] = inst->videoModesBackup[regs.eax];
+
 			auto mode = *inst->rwVideoModes + regs.eax;
 			inst->WindowResize({ (LONG)mode->width, (LONG)mode->height });
 		}

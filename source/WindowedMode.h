@@ -25,6 +25,7 @@ public:
 	DWORD (*RwEngineGetNumVideoModes)();
 	DWORD (*RwEngineGetCurrentVideoMode)();
 	uintptr_t frontEndMenuManager;
+    std::vector<DisplayMode> videoModesBackup;
 
 	// constructor taking addresses for specific game version
 	WindowedMode(

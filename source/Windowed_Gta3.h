@@ -60,10 +60,14 @@ void WindowedMode::InitGta3()
 
 	injector::WriteMemory(0x047C6B8, BYTE(0xEB), true); // don't gray out resoluton in options menu after game started
 	injector::MakeNOP(0x4882CA, 6); // don't disable resoluton changes in options menu after game started
-	struct Patch_ChangeResolution // user selected new resolition in option menu
+	struct Patch_ChangeResolution // user selected new resolution in option menu
 	{
 		void operator()(injector::reg_pack& regs)
 		{
+			// restore potentially corrupted entry before reading it
+			if (!inst->videoModesBackup.empty() && regs.eax < inst->videoModesBackup.size())
+				(*inst->rwVideoModes)[regs.eax] = inst->videoModesBackup[regs.eax];
+
 			auto mode = *inst->rwVideoModes + regs.eax;
 			inst->WindowResize({ (LONG)mode->width, (LONG)mode->height });
 		}
