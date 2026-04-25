@@ -352,7 +352,8 @@ void WindowedMode::WindowResize(POINT resolution)
 		windowMode = WindowMode::Windowed;
 
 	windowSizeWindowed = resolution;
-	WindowCalculateGeometry(false, true); // and resize the window
+	windowPosWindowed = { -1, -1 }; // re-center on resolution change
+	WindowCalculateGeometry(true, true); // and resize the window
 	SaveConfig();
 }
 
