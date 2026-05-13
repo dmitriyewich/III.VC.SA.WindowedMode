@@ -1,4 +1,5 @@
 #include "WindowedMode.h"
+#include "AntiAfk.h"
 #include <cstring>
 
 namespace {
@@ -98,4 +99,6 @@ void WindowedMode::InitGtaSA()
 			inst->InitD3dDevice();
 		}
 	}; injector::MakeInline<Path_InitD3dDevice>(0x7F6800, 0x7F6806);
+
+	AntiAfk::InstallGameHooks();
 }

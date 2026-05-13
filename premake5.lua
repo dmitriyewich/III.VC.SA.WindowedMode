@@ -29,7 +29,7 @@ project "III.VC.SA.WindowedMode"
    
    defines { "rsc_CompanyName=\"ThirteenAG\"" }
    defines { "rsc_LegalCopyright=\"MIT License\""} 
-   defines { "rsc_FileVersion=\"1.0.0.0\"", "rsc_ProductVersion=\"1.0.0.0\"" }
+   defines { "rsc_FileVersion=\"2.2.1.0\"", "rsc_ProductVersion=\"2.2.1.0\"" }
    defines { "rsc_InternalName=\"%{prj.name}\"", "rsc_ProductName=\"%{prj.name}\"", "rsc_OriginalFilename=\"%{prj.name}.asi\"" }
    defines { "rsc_FileDescription=\"https://github.com/ThirteenAG\"" }
    defines { "rsc_UpdateUrl=\"https://github.com/ThirteenAG/III.VC.SA.WindowedMode\"" }
@@ -37,11 +37,14 @@ project "III.VC.SA.WindowedMode"
    files { "source/*.h" }
    files { "source/*.cpp", "source/*.c" }
    files { "source/*.rc" }
+   files { "external/MinHook/src/*.c", "external/MinHook/src/hde/*.c" }
    files { "external/injector/safetyhook/include/**.hpp", "external/injector/safetyhook/src/**.cpp" }
    files { "external/injector/zydis/**.h", "external/injector/zydis/**.c" }
+   removefiles { "external/injector/safetyhook/src/os.linux.cpp" }
 
    includedirs { "source" }
    includedirs { "source/d3d8" }
+   includedirs { "external/MinHook/include" }
    includedirs { "external/injector/safetyhook/include" }
    includedirs { "external/injector/zydis" }
    includedirs { "external/injector/include" }

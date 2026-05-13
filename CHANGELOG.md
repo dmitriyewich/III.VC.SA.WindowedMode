@@ -1,3 +1,9 @@
+## 2.2.1
+- **Anti-AFK для GTA San Andreas (1.0 US):** опциональная логика в духе `#AntiAFK` — периодический «пульс» после **`CPad::UpdatePads`** и отдельное поведение для **`RsMouseSetPos`**.
+- **MinHook** (каталог `external/MinHook`): хуки на адреса **`0x541DD0`** и **`0x6194A0`**. Для существующих патчей проекта по-прежнему используется **injector**; в premake снова подключены **safetyhook** и **zydis**, файл **`os.linux.cpp`** исключён из сборки под Windows.
+- **Настройки:** секция INI **`[antiafk]`** (`AFKMode`, `DontSetCursor`, `DontForegroundWindow`, `intervalMs`) и необязательный JSON **`III.VC.SA.WindowedMode.json`** рядом с ASI с теми же ключами, что у JSON AIR (при необходимости можно скопировать свой `#AntiAFK_*.json` и переименовать).
+- **CI:** в списке проверяемых файлов добавлены **`external/MinHook/include/MinHook.h`**, **`external/injector/safetyhook/include/safetyhook.hpp`** и **`source/AntiAfk.cpp`**; по-прежнему нужны сабмодули **`IniReader`** и полный **`injector`** (`git submodule update --init --recursive`).
+
 ## 2.2
 - **Два окна San Andreas (US 1.0):** вместе с оконным режимом можно запускать **вторую копию** игры — она не должна зависать сразу после главного меню, как без этих доработок.
 - **Связка обходов «одна копия»:** не один шаг, а **полный набор** мелких правок в духе известного мода «несколько процессов» для SA, чтобы вторая копия не упиралась в оставшиеся проверки.

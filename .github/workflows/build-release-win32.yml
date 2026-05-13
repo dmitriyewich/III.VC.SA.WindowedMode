@@ -47,6 +47,8 @@ jobs:
             'external/IniReader/IniReader.h',
             'external/injector/include/injector/injector.hpp',
             'external/injector/safetyhook/include/safetyhook.hpp',
+            'external/MinHook/include/MinHook.h',
+            'source/AntiAfk.cpp',
             'source/WindowedMode.cpp',
             'source/Windowed_GtaSA.h'
           )

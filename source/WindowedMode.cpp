@@ -1,4 +1,5 @@
 #include "WindowedMode.h"
+#include "AntiAfk.h"
 #include "Windowed_Gta3.h"
 #include "Windowed_GtaVC.h"
 #include "Windowed_GtaSA.h"
@@ -183,6 +184,12 @@ bool WindowedMode::LoadConfig()
 	autoPause = config.ReadInteger("game", "autoPause", true) != false;
 	autoResume = config.ReadInteger("game", "autoResume", true) != false;
 
+	if (gameTitle == GTA_SA)
+	{
+		AntiAfk::LoadFromIni(config);
+		AntiAfk::TryLoadJsonBesideModule();
+	}
+
 	return maximize;
 }
 
@@ -198,6 +205,9 @@ void WindowedMode::SaveConfig()
 	config.WriteString("game", "menuFPS",		StringPrintf("%d\t\t; frame rate limit for main menu. 0: unlimited", menuFrameRateLimit));
 	config.WriteString("game", "autoPause",		StringPrintf("%d\t\t; pause the game on window deactivation", autoPause));
 	config.WriteString("game", "autoResume",	StringPrintf("%d\t; resume the game on window activation", autoResume));
+
+	if (gameTitle == GTA_SA)
+		AntiAfk::SaveToIni(config);
 }
 
 int WindowedMode::FindAspectRatio(POINT resolution, float treshold)
