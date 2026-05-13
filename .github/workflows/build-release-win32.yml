@@ -1,0 +1,89 @@
+name: Build III.VC.SA.WindowedMode Release Win32
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - '.github/workflows/build-release-win32.yml'
+      - 'premake5.lua'
+      - 'premake5.exe'
+      - 'premake5.bat'
+      - 'source/**'
+      - 'external/**'
+  workflow_dispatch:
+  release:
+    types:
+      - published
+
+env:
+  BUILD_CONFIGURATION: Release
+  BUILD_PLATFORM: Win32
+  # В premake по умолчанию v145; на windows-latest обычно доступен v143 — override для CI.
+  BUILD_TOOLSET: v143
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Verify vendored dependencies
+        shell: pwsh
+        run: |
+          $required = @(
+            'premake5.exe',
+            'premake5.lua',
+            'external/IniReader/IniReader.h',
+            'external/injector/include/injector/injector.hpp',
+            'external/injector/safetyhook/include/safetyhook.hpp',
+            'source/WindowedMode.cpp',
+            'source/Windowed_GtaSA.h'
+          )
+          $missing = @($required | Where-Object { -not (Test-Path -LiteralPath $_) })
+          if ($missing.Count -gt 0) {
+            $missing | ForEach-Object { Write-Error "Missing: $_" }
+            exit 1
+          }
+
+      - name: Generate VS2022 solution (premake5)
+        shell: pwsh
+        run: |
+          Set-Location $env:GITHUB_WORKSPACE
+          & .\premake5.exe vs2022
+          if (-not (Test-Path -LiteralPath 'build/III.VC.SA.WindowedMode.sln')) {
+            Write-Error 'premake did not produce build/III.VC.SA.WindowedMode.sln'
+            exit 1
+          }
+
+      - name: Build Release Win32
+        shell: pwsh
+        run: |
+          msbuild build/III.VC.SA.WindowedMode.sln /m `
+            /p:Configuration=$env:BUILD_CONFIGURATION `
+            /p:Platform=$env:BUILD_PLATFORM `
+            /p:PlatformToolset=$env:BUILD_TOOLSET
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: III.VC.SA.WindowedMode-Release-Win32
+          path: data/III.VC.SA.WindowedMode.asi
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload release asset
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: data/III.VC.SA.WindowedMode.asi
