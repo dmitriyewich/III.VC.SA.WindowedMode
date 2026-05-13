@@ -43,7 +43,7 @@ WindowedMode::WindowedMode(
 HWND __stdcall WindowedMode::InitWindow(DWORD dwExStyle, LPCSTR lpClassName, LPCSTR lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam)
 {
 	WNDCLASSA oriClass;
-	if (!GetClassInfo(hInstance, inst->windowClassName, &oriClass))
+	if (!GetClassInfoA(hInstance, inst->windowClassName, &oriClass))
 	{
 		ShowError("Game window class not found!");
 		return NULL;
@@ -57,9 +57,20 @@ HWND __stdcall WindowedMode::InitWindow(DWORD dwExStyle, LPCSTR lpClassName, LPC
 	inst->WindowCalculateGeometry(center);
 	inst->WindowUpdateTitle();
 
-	WNDCLASSA wndClass;
+	// Per-process unique class name so a second game instance never shares the same
+	// registered class atom / name as the first (UnregisterClass+reuse is fragile when
+	// multiple gta_sa.exe run without modloader).
+	char registeredClassName[96];
+	if (sprintf_s(registeredClassName, "%s_%08lX", inst->windowClassName,
+	              static_cast<unsigned long>(GetCurrentProcessId())) < 0)
+	{
+		ShowError("WindowedMode: window class name buffer overflow.");
+		return NULL;
+	}
+
+	WNDCLASSA wndClass = {};
 	wndClass.hInstance = hInstance;
-	wndClass.lpszClassName = inst->windowClassName;
+	wndClass.lpszClassName = registeredClassName;
 	wndClass.style = 0;
 	wndClass.hIcon = inst->windowIcon;
 	wndClass.hCursor = LoadCursor(hInstance, IDC_ARROW);
@@ -68,13 +79,27 @@ HWND __stdcall WindowedMode::InitWindow(DWORD dwExStyle, LPCSTR lpClassName, LPC
 	wndClass.lpfnWndProc = &WindowedMode::WindowProc;
 	wndClass.cbClsExtra = 0;
 	wndClass.cbWndExtra = 0;
-	
-	UnregisterClass(inst->windowClassName, hInstance);
-	RegisterClass(&wndClass);
+
+	if (!RegisterClassA(&wndClass))
+	{
+		const DWORD err = GetLastError();
+		if (err != ERROR_CLASS_ALREADY_EXISTS)
+		{
+			ShowError("WindowedMode: RegisterClass failed (error %lu).", static_cast<unsigned long>(err));
+			return NULL;
+		}
+		UnregisterClassA(registeredClassName, hInstance);
+		if (!RegisterClassA(&wndClass))
+		{
+			ShowError("WindowedMode: RegisterClass failed after retry (error %lu).",
+			          static_cast<unsigned long>(GetLastError()));
+			return NULL;
+		}
+	}
 
 	inst->window = CreateWindowEx(
 		inst->WindowStyleEx(),
-		inst->windowClassName,
+		registeredClassName,
 		inst->windowTitle,
 		inst->WindowStyle(),
 		inst->windowPos.x, inst->windowPos.y,
@@ -83,6 +108,12 @@ HWND __stdcall WindowedMode::InitWindow(DWORD dwExStyle, LPCSTR lpClassName, LPC
 		NULL, // menu
 		hInstance,
 		0);
+
+	// SA 1.0 US: HWND mirror for D3D (GTAMods wiki 0xC97C1C). Do not write undocumented slots.
+	if (inst->gameTitle == GameTitle::GTA_SA && inst->window)
+	{
+		injector::WriteMemory<void*>(0xC97C1C, inst->window, true);
+	}
 
 	if (maximize)
 		PostMessage(inst->window, WM_SYSCOMMAND, SC_MAXIMIZE, 0); // maximize and perofm updates
@@ -814,10 +845,10 @@ void WindowedMode::MouseUpdate(bool force)
 	bool inGame = hasFocus && PtInRect(&rect, pos);
 	SetCursorVisible(!inGame);
 
-	// keep cursor inside the window
+	// keep cursor inside the window (borderless/fullscreen only — plain windowed allows OS cursor escape)
 	if (hasFocus || force)
 	{
-		if (!hasFocus || IsMainMenuVisible())
+		if (!hasFocus || IsMainMenuVisible() || windowMode == WindowMode::Windowed)
 			ClipCursor(NULL);
 		else
 			ClipCursor(&rect);

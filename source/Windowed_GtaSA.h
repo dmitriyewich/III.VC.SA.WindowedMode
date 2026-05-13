@@ -1,4 +1,34 @@
 #include "WindowedMode.h"
+#include <cstring>
+
+namespace {
+
+bool FileExistsInExeDirectory(const char* relativeName)
+{
+	char exePath[MAX_PATH] = {};
+	if (GetModuleFileNameA(nullptr, exePath, MAX_PATH) == 0)
+		return false;
+	char* slash = std::strrchr(exePath, '\\');
+	if (!slash)
+		return false;
+	*slash = '\0';
+
+	char path[MAX_PATH] = {};
+	if (sprintf_s(path, "%s\\%s", exePath, relativeName) == -1)
+		return false;
+
+	const DWORD attrs = GetFileAttributesA(path);
+	return attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY) == 0;
+}
+
+bool IsModloaderPresent()
+{
+	if (GetModuleHandleA("modloader.asi") != nullptr || GetModuleHandleA("modloader") != nullptr)
+		return true;
+	return FileExistsInExeDirectory("modloader.asi");
+}
+
+} // namespace
 
 void WindowedMode::InitGtaSA()
 {
@@ -25,6 +55,19 @@ void WindowedMode::InitGtaSA()
 	VerifyMemory("InitPresentationParams", 0x7F670A, 6, 0xAB349BBF);
 	VerifyMemory("InitD3dDevice", 0x7F6800, 6, 0xEDAE7102);
 #endif
+
+	// SA 1.0 US: allow a second gta_sa.exe — patch call CheckForOtherSA (same 5 bytes as mpgtasa:
+	// 3x NOP + xor eax,eax so following test eax sees "no duplicate". Plain 5x NOP leaves eax undefined.)
+	// With Mod Loader this patch is skipped — multiprocess + modloader are not supported together.
+	// AmyrAhmady/multi-process-gtasa also patches 0x406946 and 0x53BC78; without them a second instance
+	// can stall after the first frames even when 74872D is patched.
+	if (!IsModloaderPresent())
+	{
+		static const uint8_t kMultiInstancePatch5[] = { 0x90, 0x90, 0x90, 0x31, 0xC0 };
+		injector::WriteMemoryRaw(0x74872D, (void*)kMultiInstancePatch5, sizeof(kMultiInstancePatch5), true);
+		injector::WriteMemory<uint8_t>(0x406946, 0, true);
+		injector::WriteMemory<uint8_t>(0x53BC78, 0, true);
+	}
 
 	// do not show device selection dialog in case of multiple display monitors
 	injector::WriteMemory(0x746225, BYTE(0xEB), true);
